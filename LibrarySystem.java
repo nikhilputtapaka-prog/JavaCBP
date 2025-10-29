@@ -1,6 +1,7 @@
 import java.io.*;
 import java.util.*;
-class Book{
+
+class Book {
     int id;
     String title;
     String author;
@@ -14,12 +15,12 @@ class Book{
         this.isIssued = isIssued;
     }
 
-    // Convert book data to one line for saving in file
+    // Convert book details to text for saving
     String toFileString() {
-        return id + "," + title + "," + author + "," + isIssued;
+        return id + "," + title + "," + author + "," + isIssued + "\n";
     }
 
-    // Create a Book object from one line read from file
+    // Read one book record from text line
     static Book fromFileString(String line) {
         String[] parts = line.split(",");
         return new Book(
@@ -30,12 +31,13 @@ class Book{
         );
     }
 }
+
 public class LibrarySystem {
     static final String FILE_NAME = "books.txt";
     static ArrayList<Book> books = new ArrayList<>();
 
     public static void main(String[] args) {
-        loadData();  // Load data from file when program starts
+        loadData();
         Scanner sc = new Scanner(System.in);
 
         while (true) {
@@ -47,36 +49,46 @@ public class LibrarySystem {
             System.out.println("5. Exit");
             System.out.print("Enter your choice: ");
             int choice = sc.nextInt();
-            sc.nextLine(); // consume newline
 
             switch (choice) {
                 case 1:
-                    addBook(sc);
+                    addBook();
                     break;
                 case 2:
                     viewBooks();
                     break;
                 case 3:
-                    issueBook(sc);
+                    issueBook();
                     break;
                 case 4:
-                    returnBook(sc);
+                    returnBook();
                     break;
                 case 5:
                     saveData();
                     System.out.println("Data saved. Exiting program...");
                     return;
                 default:
-                    System.out.println("Invalid choice! Please enter 1–5.");
+                    System.out.println("Invalid choice. Please enter 1 to 5.");
             }
         }
     }
 
-    // Add new book
-    static void addBook(Scanner sc) {
+    // Add a new book (no duplicate IDs)
+    static void addBook() {
+        Scanner sc = new Scanner(System.in);
+
         System.out.print("Enter Book ID: ");
         int id = sc.nextInt();
-        sc.nextLine();
+        sc.nextLine(); // consume newline
+
+        // Check for duplicate ID
+        for (Book b : books) {
+            if (b.id == id) {
+                System.out.println("Book ID already exists. Please use a different ID.");
+                return;
+            }
+        }
+
         System.out.print("Enter Book Title: ");
         String title = sc.nextLine();
         System.out.print("Enter Author Name: ");
@@ -84,24 +96,26 @@ public class LibrarySystem {
 
         books.add(new Book(id, title, author, false));
         saveData();
-        System.out.println("Book added successfully!");
+        System.out.println("Book added successfully.");
     }
 
-    // Display all books
+    // Show all books
     static void viewBooks() {
         if (books.isEmpty()) {
-            System.out.println("No books available!");
+            System.out.println("No books available.");
             return;
         }
+
         System.out.println("\n--- Book List ---");
         for (Book b : books) {
             String status = b.isIssued ? "Issued" : "Available";
-            System.out.println(b.id + " | " + b.title + " | " + b.author + " | Status: " + status);
+            System.out.println(b.id + " | " + b.title + " | " + b.author + " | " + status);
         }
     }
 
-    // Issue a book
-    static void issueBook(Scanner sc) {
+    // Issue a book by ID
+    static void issueBook() {
+        Scanner sc = new Scanner(System.in);
         System.out.print("Enter Book ID to issue: ");
         int id = sc.nextInt();
         boolean found = false;
@@ -111,20 +125,24 @@ public class LibrarySystem {
                 found = true;
                 if (!b.isIssued) {
                     b.isIssued = true;
-                    System.out.println("✅ Book issued successfully!");
+                    System.out.println("Book issued successfully.");
                 } else {
-                    System.out.println("⚠ Book already issued!");
+                    System.out.println("Book is already issued.");
                 }
                 break;
             }
         }
 
-        if (!found) System.out.println("❌ Book not found!");
+        if (!found) {
+            System.out.println("Book not found.");
+        }
+
         saveData();
     }
 
-    // Return a book
-    static void returnBook(Scanner sc) {
+    // Return a book by ID
+    static void returnBook() {
+        Scanner sc = new Scanner(System.in);
         System.out.print("Enter Book ID to return: ");
         int id = sc.nextInt();
         boolean found = false;
@@ -134,42 +152,57 @@ public class LibrarySystem {
                 found = true;
                 if (b.isIssued) {
                     b.isIssued = false;
-                    System.out.println("✅ Book returned successfully!");
+                    System.out.println("Book returned successfully.");
                 } else {
-                    System.out.println("⚠ Book was not issued!");
+                    System.out.println("Book was not issued.");
                 }
                 break;
             }
         }
 
-        if (!found) System.out.println("❌ Book not found!");
+        if (!found) {
+            System.out.println("Book not found.");
+        }
+
         saveData();
     }
 
-    // Load data from file
+    // Load all books from file using FileReader
     static void loadData() {
-        try (BufferedReader br = new BufferedReader(new FileReader(FILE_NAME))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                books.add(Book.fromFileString(line));
+        try {
+            FileReader fr = new FileReader(FILE_NAME);
+            StringBuilder data = new StringBuilder();
+            int ch;
+            while ((ch = fr.read()) != -1) {
+                data.append((char) ch);
             }
-            System.out.println("📂 Data loaded successfully!");
+            fr.close();
+
+            String[] lines = data.toString().split("\n");
+            for (String line : lines) {
+                if (!line.trim().isEmpty()) {
+                    books.add(Book.fromFileString(line));
+                }
+            }
+
+            System.out.println("Data loaded successfully.");
         } catch (FileNotFoundException e) {
-            System.out.println("ℹ No previous data found. Starting fresh...");
+            System.out.println("No previous data found. Starting fresh...");
         } catch (IOException e) {
-            System.out.println("❌ Error reading file: " + e.getMessage());
+            System.out.println("Error reading file: " + e.getMessage());
         }
     }
 
-    // Save data to file
+    // Save all books to file using FileWriter
     static void saveData() {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILE_NAME))) {
+        try {
+            FileWriter fw = new FileWriter(FILE_NAME);
             for (Book b : books) {
-                bw.write(b.toFileString());
-                bw.newLine();
+                fw.write(b.toFileString());
             }
+            fw.close();
         } catch (IOException e) {
-            System.out.println("❌ Error saving data: " + e.getMessage());
+            System.out.println("Error saving data: " + e.getMessage());
         }
     }
 }
